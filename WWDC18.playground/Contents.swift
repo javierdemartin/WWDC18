@@ -1,12 +1,13 @@
 // ARSCNView test
 
+// TODO : Add tap gesture recognizers on each planet to display information
+
 import ARKit
 import UIKit
 import SceneKit
 import PlaygroundSupport
 
 //////////////////////////////////////////////////////
-//
 //
 // ARKit
 //
@@ -27,62 +28,31 @@ class MyARTest : UIViewController, ARSCNViewDelegate, ARSessionDelegate {
        sceneView.scene.rootNode
        // Add ligthing
        sceneView.autoenablesDefaultLighting = true
-
+        
+        let solarSystem = EarthView(frame: CGRect(x: 0.0, y: 0.0, width: 200.0, height: 200.0))
+        
      //  add new node to root node
-     self.sceneView.scene.rootNode.addChildNode(EarthView(frame: CGRect(x: 0.0, y: 0.0, width: 200.0, height: 200.0)).getRootNode())
-
-     // Add an scaleSlider button
-     weak var scaleSlider: UISlider! {
-         didSet {
-            scaleSlider.transform =  CGAffineTransform(rotationAngle: -CGFloat.pi/2)
-        }
-     }
-     scaleSlider = UISlider()
-     scaleSlider.addTarget(self, action: #selector(updateScaleWithSlider(_:)), for: .touchUpInside)
-     scaleSlider.minimumValue = 0
-     scaleSlider.maximumValue = 10
-        // add scaleSlider to view
-    sceneView.addSubview(scaleSlider)
-
-    // Auto Layout
-    scaleSlider.translatesAutoresizingMaskIntoConstraints = true
-  }
-
- override func loadView() {
-
-    sceneView = ARSCNView(frame:CGRect(x: 0.0, y: 0.0, width: 400.0, height: 400.0))
-    // Set the view's delegate
-    sceneView.delegate = self
-
-    let config = ARWorldTrackingConfiguration()
-    config.planeDetection = .horizontal
-
-    // Now we'll get messages when planes were detected...
-    sceneView.session.delegate = self
-
-    self.view = sceneView
-    sceneView.session.run(config)
-
- }
-
- func scaleNode(value: Float) {
-    SCNTransaction.begin()
-    SCNTransaction.animationDuration = 1
-    self.sceneView.scene.rootNode.scale = SCNVector3(value, value, value)
+        self.sceneView.scene.rootNode.addChildNode(solarSystem.getRootNode())
+    }
     
-    SCNTransaction.commit()
- }
+     override func loadView() {
 
-@IBAction func updateScaleWithSlider(_ sender: UISlider) {
-    guard let slider = sender as? UISlider else { return }
-    scaleNode(value: slider.value)
- }
+        sceneView = ARSCNView(frame:CGRect(x: 0.0, y: 0.0, width: 400.0, height: 400.0))
+        // Set the view's delegate
+        sceneView.delegate = self
 
+        let config = ARWorldTrackingConfiguration()
+        config.planeDetection = .horizontal
+
+        // Now we'll get messages when planes were detected...
+        sceneView.session.delegate = self
+
+        self.view = sceneView
+        sceneView.session.run(config, options: [.resetTracking,.resetTracking])
+     }
 }
 
-
 //////////////////////////////////////////////////////
-//
 //
 // SceneKit
 //
@@ -90,17 +60,16 @@ class MyARTest : UIViewController, ARSCNViewDelegate, ARSessionDelegate {
 
 class EarthScene: SCNScene  {
     
-    
     // Moon
     let moonNode : SCNNode = SCNNode()
-    let moonNodeRotationSpeed: CGFloat = CGFloat(Double.pi/8)
+    let moonNodeRotationSpeed: CGFloat = 10 //CGFloat(Double.pi/8)
     var moonNodeRotation: CGFloat = 0
     let moonRadius : Float = 0.5 // 0.000011614
     
     // Earth
     let earthNode: SCNNode = SCNNode()
     var earthNodeRotation: CGFloat = 0
-    let earthNodeRotationSpeed: CGFloat = CGFloat(0.1965) //CGFloat(Double.pi/40)
+    let earthNodeRotationSpeed: CGFloat = 10 //CGFloat(0.1965) //CGFloat(Double.pi/40)
     let earthRadius : Float = 1 // 0.00004258756 Real
     
     // Sun
@@ -109,10 +78,10 @@ class EarthScene: SCNScene  {
     var sunNodeRotation: CGFloat = 0
     let sunRadius : Float = 2 // Real en UA
     
-    
     // Observer
     let observerNode: SCNNode = SCNNode()
     let helperNode  = SCNNode()
+    let helperNodeSunEarth  = SCNNode()
     
     override init()  {
         
@@ -129,38 +98,13 @@ class EarthScene: SCNScene  {
         fatalError("init(coder:) has not been implemented")
     }
     
-    
     func setUpObserver() {
         
         //Set up initial camera's position
         observerNode.camera = SCNCamera()
-        observerNode.position = SCNVector3(x:2, y: 2, z: 10)
+        observerNode.position = SCNVector3(x:0, y: 0, z: 10)
         
         rootNode.addChildNode(observerNode)
-        
-        let observerMaterial = SCNMaterial()
-        observerMaterial.specular.intensity = 1.0
-        observerMaterial.diffuse.contents = UIImage(named: "sun.jpg")
-        
-        let auxNode = SCNNode()
-        auxNode.position = SCNVector3(x: 0, y: 0, z: 0)
-        
-        let observerGeometry = SCNSphere(radius: 2)
-        observerGeometry.firstMaterial = observerMaterial
-        
-        
-        let observerLight = SCNLight()
-        observerLight.type = SCNLight.LightType.ambient
-        observerLight.color = UIColor(white: 0.15, alpha: 1.0)
-        
-        
-        auxNode.geometry = observerGeometry
-        //        auxNode.light = observerLight
-        
-        
-        
-        rootNode.addChildNode(auxNode)
-        
     }
     
     func setUpMoon() {
@@ -184,22 +128,28 @@ class EarthScene: SCNScene  {
     
     func setUpSun() {
         
-        //Set up sunlights postion
-        let sunNodeLight = SCNLight()
-        sunNodeLight.type = SCNLight.LightType.ambient
-        sunNodeLight.intensity = 0.8
+        let observerMaterial = SCNMaterial()
+        observerMaterial.specular.intensity = 1.0
+        observerMaterial.diffuse.contents = UIImage(named: "sun.jpg")
         
-        sunNode.light = sunNodeLight
+        let observerGeometry = SCNSphere(radius: 1)
+        observerGeometry.firstMaterial = observerMaterial
         
-        // Set up roation vector
-        sunNode.rotation = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(CGFloat(sunNodeRotation)))
+        
+        let observerLight = SCNLight()
+        observerLight.type = SCNLight.LightType.ambient
+        observerLight.color = UIColor(white: 0.15, alpha: 1.0)
+        
+        
+        sunNode.geometry = observerGeometry
+        sunNode.light = observerLight
+        
         rootNode.addChildNode(sunNode)
-        
     }
     
     func setUpEarth() {
         
-        let earthMaterial = SCNMaterial()
+        let earthMaterial              = SCNMaterial()
         earthMaterial.ambient.contents = UIColor(white: 0.7, alpha: 1.0)
         earthMaterial.diffuse.contents = UIImage(named: "earth.jpg")
         
@@ -214,10 +164,15 @@ class EarthScene: SCNScene  {
         earthNode.geometry = earthGeometry
         earthNode.position = SCNVector3(6.0, 0.0, 0.0)
         
-        earthNode.addChildNode(helperNode)
         rootNode.addChildNode(earthNode)
+        earthNode.addChildNode(helperNode)
+        
+        
+        rootNode.addChildNode(helperNodeSunEarth)
+        helperNodeSunEarth.addChildNode(earthNode)
+        earthNode.addChildNode(helperNode)
+        
     }
-    
     
     //function to revole any node to the left
     func revolve(node: SCNNode ,value: CGFloat, increase: CGFloat) -> CGFloat {
@@ -249,8 +204,8 @@ class EarthScene: SCNScene  {
         }
         
         sunNode.rotation   = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(sunNodeRotation))
-        earthNode.rotation = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(earthNodeRotation))
-        moonNode.rotation  = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(moonNodeRotation))
+        earthNode.rotation = SCNVector4(x: 1.0, y: 1.0, z: 0.0, w: Float(earthNodeRotation))
+        moonNode.rotation  = SCNVector4(x: 10.0, y: 10.0, z: 10.0, w: Float(moonNodeRotation))
         
         SCNTransaction.commit()
     }
@@ -260,8 +215,8 @@ class EarthScene: SCNScene  {
         
         let rotation = SCNAction.rotateBy(x: 0, y: 8, z: 9, duration: .infinity)
         helperNode.runAction(rotation)
-        
     }
+    
     
     func getRootNode() -> SCNNode {
         
@@ -269,10 +224,16 @@ class EarthScene: SCNScene  {
         
         return rootNode
     }
+    
+    func getEarthNode() -> SCNNode {
+        
+        return earthNode
+    }
 }
 
 //SCNView for presenting the Scene
 class EarthView: SCNView {
+    
     let earthScene: EarthScene = EarthScene()
     
     override init(frame: CGRect, options: [String : Any]? = nil) {
@@ -285,18 +246,21 @@ class EarthView: SCNView {
         earthScene.animateEarthScene()
         //        earthScene.animateMoon()
         
+        
+        
     }
     
-    required init?(coder aDecoder: NSCoder)
-    {
+    required init?(coder aDecoder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-        
-        
     }
     
     func getRootNode() -> SCNNode {
-        
         return earthScene.getRootNode()
+    }
+    
+    
+    func getEarthNode() -> SCNNode {
+        return earthScene.getEarthNode()
     }
 }
 
