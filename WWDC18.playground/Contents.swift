@@ -2,16 +2,16 @@
 
 // TODO : Add tap gesture recognizers on each planet to display information
 
+// Following this tuto: https://www.appcoda.com/arkit-horizontal-plane/
+
 import ARKit
 import UIKit
 import SceneKit
 import PlaygroundSupport
 
-//////////////////////////////////////////////////////
-//
 // ARKit
-//
-//////////////////////////////////////////////////////
+//---------------------------------------------------------------
+
 
 // Main ARKIT ViewController
 class MyARTest : UIViewController, ARSCNViewDelegate, ARSessionDelegate {
@@ -21,15 +21,13 @@ class MyARTest : UIViewController, ARSCNViewDelegate, ARSessionDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         // set the views delegate
-        sceneView.delegate = self as! ARSCNViewDelegate
-       // show statistics such as fps and timing information
-       sceneView.showsStatistics = true
-       // Create a new scene
-       sceneView.scene.rootNode
-       // Add ligthing
-       sceneView.autoenablesDefaultLighting = true
+        sceneView.delegate = self as ARSCNViewDelegate
+        sceneView.showsStatistics = true
+       
+        sceneView.scene.rootNode // Create a new scene
+        sceneView.autoenablesDefaultLighting = true // Add ligthing
         
-        let solarSystem = EarthView(frame: CGRect(x: 0.0, y: 0.0, width: 200.0, height: 200.0))
+        let solarSystem = PlanetaryView(frame: CGRect(x: 0.0, y: 0.0, width: 200.0, height: 200.0))
         
      //  add new node to root node
         self.sceneView.scene.rootNode.addChildNode(solarSystem.getRootNode())
@@ -40,6 +38,8 @@ class MyARTest : UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         sceneView = ARSCNView(frame:CGRect(x: 0.0, y: 0.0, width: 400.0, height: 400.0))
         // Set the view's delegate
         sceneView.delegate = self
+        
+        sceneView.debugOptions = [.showBoundingBoxes, .showCameras, .showConstraints]
 
         let config = ARWorldTrackingConfiguration()
         config.planeDetection = .horizontal
@@ -50,38 +50,39 @@ class MyARTest : UIViewController, ARSCNViewDelegate, ARSessionDelegate {
         self.view = sceneView
         sceneView.session.run(config, options: [.resetTracking,.resetTracking])
      }
+    
+    func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
+        print("Added node")
+    }
 }
 
-//////////////////////////////////////////////////////
-//
 // SceneKit
-//
-//////////////////////////////////////////////////////
+//---------------------------------------------------------------
 
 class EarthScene: SCNScene  {
     
     // Moon
-    let moonNode : SCNNode = SCNNode()
-    let moonNodeRotationSpeed: CGFloat = 10 //CGFloat(Double.pi/8)
-    var moonNodeRotation: CGFloat = 0
-    let moonRadius : Float = 0.5 // 0.000011614
+    let moonNode : SCNNode             = SCNNode()
+    let moonNodeRotationSpeed: CGFloat = 1 //CGFloat(Double.pi/8)
+    var moonNodeRotation: CGFloat      = 0
+    let moonRadius : Float             = 0.5 // 0.000011614
     
     // Earth
     let earthNode: SCNNode = SCNNode()
     var earthNodeRotation: CGFloat = 0
-    let earthNodeRotationSpeed: CGFloat = 10 //CGFloat(0.1965) //CGFloat(Double.pi/40)
+    let earthNodeRotationSpeed: CGFloat = 1 //CGFloat(0.1965) //CGFloat(Double.pi/40)
     let earthRadius : Float = 1 // 0.00004258756 Real
     
     // Sun
-    let sunNode: SCNNode = SCNNode()
-    let sunNodeRotationSpeed: CGFloat  = CGFloat(1.997) //CGFloat(Double.pi/6)
-    var sunNodeRotation: CGFloat = 0
-    let sunRadius : Float = 2 // Real en UA
+    let sunNode: SCNNode              = SCNNode()
+    let sunNodeRotationSpeed: CGFloat = CGFloat(1.997) //CGFloat(Double.pi/6)
+    var sunNodeRotation: CGFloat      = 0
+    let sunRadius : Float             = 2 // Real en UA
     
     // Observer
     let observerNode: SCNNode = SCNNode()
-    let helperNode  = SCNNode()
-    let helperNodeSunEarth  = SCNNode()
+    let helperNode            = SCNNode()
+    let helperNodeSunEarth    = SCNNode()
     
     override init()  {
         
@@ -145,6 +146,7 @@ class EarthScene: SCNScene  {
         sunNode.light = observerLight
         
         rootNode.addChildNode(sunNode)
+        sunNode.addChildNode(helperNodeSunEarth)
     }
     
     func setUpEarth() {
@@ -164,14 +166,17 @@ class EarthScene: SCNScene  {
         earthNode.geometry = earthGeometry
         earthNode.position = SCNVector3(6.0, 0.0, 0.0)
         
-        rootNode.addChildNode(earthNode)
-        earthNode.addChildNode(helperNode)
+//        rootNode.addChildNode(earthNode)
+//        earthNode.addChildNode(helperNode)
         
         
-        rootNode.addChildNode(helperNodeSunEarth)
+//        rootNode.addChildNode(helperNodeSunEarth)
+//        helperNodeSunEarth.addChildNode(earthNode)
+//        earthNode.addChildNode(helperNode)
+
+        
         helperNodeSunEarth.addChildNode(earthNode)
         earthNode.addChildNode(helperNode)
-        
     }
     
     //function to revole any node to the left
@@ -204,7 +209,7 @@ class EarthScene: SCNScene  {
         }
         
         sunNode.rotation   = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(sunNodeRotation))
-        earthNode.rotation = SCNVector4(x: 1.0, y: 1.0, z: 0.0, w: Float(earthNodeRotation))
+        earthNode.rotation = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(earthNodeRotation))
         moonNode.rotation  = SCNVector4(x: 10.0, y: 10.0, z: 10.0, w: Float(moonNodeRotation))
         
         SCNTransaction.commit()
@@ -232,7 +237,7 @@ class EarthScene: SCNScene  {
 }
 
 //SCNView for presenting the Scene
-class EarthView: SCNView {
+class PlanetaryView: SCNView {
     
     let earthScene: EarthScene = EarthScene()
     
@@ -245,9 +250,6 @@ class EarthView: SCNView {
         scene = earthScene
         earthScene.animateEarthScene()
         //        earthScene.animateMoon()
-        
-        
-        
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -264,6 +266,14 @@ class EarthView: SCNView {
     }
 }
 
+let usingMac = false
 
-PlaygroundPage.current.liveView = MyARTest()
+if usingMac {
+    PlaygroundPage.current.liveView = PlanetaryView(frame: CGRect(x: 0.0, y: 0.0, width: 800.0, height: 800.0))
+} else {
+    PlaygroundPage.current.liveView = MyARTest()
+}
+
+
+
 PlaygroundPage.current.needsIndefiniteExecution = true
