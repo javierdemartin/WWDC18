@@ -70,8 +70,9 @@ class EarthScene: SCNScene  {
     
     let planets : [String : Double] = ["mercury" : 2, "venus" : 5, "earth" : 7, "mars" : 9, "jupiter" : 11, "saturn" : 13, "uranus" : 15, "neptune" : 17]
     
-    var planetsRotations : [String : CGFloat] = ["mercury" : 4, "venus" : 8, "earth" : 12, "mars" : 15, "jupiter" : 18, "saturn" : 22, "uranus" : 25, "neptune" : 28]
     
+    // Speed rotation of a planet on days
+    var planetsRotations : [String : CGFloat] = ["mercury" : 1/87.969, "venus" : 1/224.7, "earth" : 1/365.25, "mars" : 1/320, "jupiter" : 1/(11.8618 * 365), "saturn" : 1/10759, "uranus" : 1/30688.5, "neptune" : 1/60182]
     
     // Moon
     let moonNode : SCNNode             = SCNNode()
@@ -101,14 +102,14 @@ class EarthScene: SCNScene  {
         super.init()
         
         addStar(name: "sun")
-        addPlanet(name: "mercury", speed: 10, radius: 0.2)
-        addPlanet(name: "venus", speed: 2, radius: 0.5)
-        addPlanet(name: "earth", speed: 3, radius: 1)
-        addPlanet(name: "mars", speed: 4, radius: 0.75)
-        addPlanet(name: "jupiter", speed: 5, radius: 0.5)
-        addPlanet(name: "saturn", speed: 6, radius: 1.5)
-        addPlanet(name: "uranus", speed: 7, radius: 0.7)
-        addPlanet(name: "neptune", speed: 8, radius: 0.2)
+        addPlanet(name: "mercury", speed: planetsRotations["mercury"]! * 20, radius: 0.2)
+        addPlanet(name: "venus", speed: planetsRotations["venus"]! * 20, radius: 0.5)
+        addPlanet(name: "earth", speed: planetsRotations["earth"]! * 20, radius: 1)
+        addPlanet(name: "mars", speed: planetsRotations["mars"]! * 20, radius: 0.75)
+        addPlanet(name: "jupiter", speed: planetsRotations["jupiter"]! * 20, radius: 0.5)
+        addPlanet(name: "saturn", speed: planetsRotations["saturn"]! * 20, radius: 1.5)
+        addPlanet(name: "uranus", speed: planetsRotations["uranus"]! * 20, radius: 0.7)
+        addPlanet(name: "neptune", speed: planetsRotations["neptune"]! * 20, radius: 0.2)
     }
     
     required init?(coder aDecoder: NSCoder) {
@@ -166,27 +167,6 @@ class EarthScene: SCNScene  {
 //        sunNode.addChildNode(helperNodeSunEarth)
     }
     
-    func setUpEarth() {
-        
-        let earthMaterial              = SCNMaterial()
-        earthMaterial.ambient.contents = UIColor(white: 0.7, alpha: 1.0)
-        earthMaterial.diffuse.contents = UIImage(named: "earth.jpg")
-        
-        earthMaterial.specular.intensity = 1
-        earthMaterial.shininess = 0.05
-        earthMaterial.multiply.contents = UIColor(white: 0.7, alpha: 1.0)
-        
-        //Earth is a sphere with radius 5
-        let earthGeometry = SCNSphere(radius: CGFloat(earthRadius))
-        earthGeometry.firstMaterial = earthMaterial
-        
-        earthNode.geometry = earthGeometry
-        earthNode.position = SCNVector3(6.0, 0.0, 0.0)
- 
-        helperNodeSunEarth.addChildNode(earthNode)
-        earthNode.addChildNode(helperNode)
-    }
-    
     //function to revole any node to the left
     func revolve(node: SCNNode ,value: CGFloat, increase: CGFloat) -> CGFloat {
         
@@ -233,50 +213,15 @@ class EarthScene: SCNScene  {
         sunNode.geometry = observerGeometry
         sunNode.light = observerLight
         
-        sunNodeRotation   = revolve(node: sunNode, value: sunNodeRotation, increase: 0.2)
+        sunNodeRotation   = revolve(node: sunNode, value: sunNodeRotation, increase: 1)
         sunNode.rotation   = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(sunNodeRotation))
         
         rootNode.addChildNode(sunNode)
         sunNode.addChildNode(helperNode)
         
-        myAnimation(nextNode: sunNode, rotation: sunNodeRotation, speed: sunNodeRotationSpeed)
+        myAnimation(nextNode: sunNode, rotation: sunNodeRotation, speed: 1)
         
     }
-    
-    
-    
-//    func addPlanet(name: String, speed: CGFloat) {
-//
-//        let nextNode = SCNNode()
-//
-//        let earthMaterial              = SCNMaterial()
-//        earthMaterial.ambient.contents = UIColor(white: 0.7, alpha: 1.0)
-//        earthMaterial.diffuse.contents = UIImage(named: "\(name).jpg")
-//
-//        earthMaterial.specular.intensity = 1
-//        earthMaterial.shininess = 0.05
-//        earthMaterial.multiply.contents = UIColor(white: 0.7, alpha: 1.0)
-//
-//        //Earth is a sphere with radius 5
-//        let earthGeometry = SCNSphere(radius: CGFloat(earthRadius))
-//        earthGeometry.firstMaterial = earthMaterial
-//
-//        nextNode.geometry = earthGeometry
-//        nextNode.position = SCNVector3(planets[name]!, 0.0, 0.0)
-//
-//
-//
-//        planetsRotations[name]!   = revolve(node: nextNode, value: planetsRotations[name]!, increase: 0.2)
-//        nextNode.rotation  = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(planetsRotations[name]!))
-//
-//        sunNode.addChildNode(helperNode)
-//        helperNode.addChildNode(nextNode)
-//
-//        ////////////
-//
-//        myAnimation(nextNode: nextNode, rotation: planetsRotations[name]!)
-//    }
-
     
     func addPlanet(name: String, speed: CGFloat, radius : CGFloat) {
         
@@ -298,17 +243,17 @@ class EarthScene: SCNScene  {
         nextNode.geometry = earthGeometry
         nextNode.position = SCNVector3(planets[name]!, 0.0, 0.0)
         
-        
-        
-        planetsRotations[name]!   = revolve(node: nextNode, value: planetsRotations[name]!, increase: speed)
+        planetsRotations[name]!   = revolve(node: nextNode, value: planetsRotations[name]!, increase: 200)
         nextNode.rotation  = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(planetsRotations[name]!))
         
         rootNode.addChildNode(helperAuxNode)
         helperAuxNode.addChildNode(nextNode)
         
-        ////////////
+        ///////////
         
+            // Traslacion
         myAnimation(nextNode: helperAuxNode, rotation: planetsRotations[name]!, speed: speed)
+        myAnimation(nextNode: nextNode, rotation: planetsRotations[name]!, speed: speed * 100)
     }
     
     func myAnimation(nextNode: SCNNode, rotation: CGFloat, speed : CGFloat) {
