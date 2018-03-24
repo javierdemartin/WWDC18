@@ -11,7 +11,7 @@ import UIKit
 import SceneKit
 import PlaygroundSupport
 
-let usingMac = false
+let usingMac = true
 let isInDebug = false
 
 // ARKit
@@ -101,7 +101,7 @@ class EarthScene: SCNScene  {
         super.init()
         
         addStar(name: "sun")
-        addPlanet(name: "mercury", speed: 1, radius: 0.2)
+        addPlanet(name: "mercury", speed: 10, radius: 0.2)
         addPlanet(name: "venus", speed: 2, radius: 0.5)
         addPlanet(name: "earth", speed: 3, radius: 1)
         addPlanet(name: "mars", speed: 4, radius: 0.75)
@@ -239,7 +239,7 @@ class EarthScene: SCNScene  {
         rootNode.addChildNode(sunNode)
         sunNode.addChildNode(helperNode)
         
-        myAnimation(nextNode: sunNode, rotation: sunNodeRotation)
+        myAnimation(nextNode: sunNode, rotation: sunNodeRotation, speed: sunNodeRotationSpeed)
         
     }
     
@@ -300,7 +300,7 @@ class EarthScene: SCNScene  {
         
         
         
-        planetsRotations[name]!   = revolve(node: nextNode, value: planetsRotations[name]!, increase: 0.2)
+        planetsRotations[name]!   = revolve(node: nextNode, value: planetsRotations[name]!, increase: speed)
         nextNode.rotation  = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(planetsRotations[name]!))
         
         rootNode.addChildNode(helperAuxNode)
@@ -308,21 +308,21 @@ class EarthScene: SCNScene  {
         
         ////////////
         
-        myAnimation(nextNode: helperAuxNode, rotation: planetsRotations[name]!)
+        myAnimation(nextNode: helperAuxNode, rotation: planetsRotations[name]!, speed: speed)
     }
     
-    func myAnimation(nextNode: SCNNode, rotation: CGFloat) {
+    func myAnimation(nextNode: SCNNode, rotation: CGFloat, speed : CGFloat) {
         
         var mutableRotation = rotation
         
-        mutableRotation   = revolve(node: nextNode, value: mutableRotation, increase: 0.2)
+        mutableRotation   = revolve(node: nextNode, value: mutableRotation, increase: speed)
         
         SCNTransaction.begin()
         SCNTransaction.animationTimingFunction = (CAMediaTimingFunction(name:kCAMediaTimingFunctionLinear))
         
         SCNTransaction.animationDuration = 1
         SCNTransaction.completionBlock = {
-            self.myAnimation(nextNode: nextNode, rotation: mutableRotation)
+            self.myAnimation(nextNode: nextNode, rotation: mutableRotation, speed: speed)
         }
         
         nextNode.rotation   = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(mutableRotation))
