@@ -9,7 +9,7 @@ import SceneKit
 import PlaygroundSupport
 
 let usingMac  = false // If on Mac deactivates AR and shows a SCNView
-let isInDebug = true // 
+let isInDebug = false //
 var alreadyAdded = false
 var userReadInstructions = false // User has accepted the instructions
 var initialScreenAdded = false // Checks if the view with the instructions has been presented to the user
@@ -31,6 +31,7 @@ extension UIColor {
     }
 }
 
+
 // ARKit
 //---------------------------------------------------------------
 
@@ -42,86 +43,101 @@ class ViewController : UIViewController, ARSCNViewDelegate, ARSessionDelegate, U
     var solarSystem : PlanetaryView!
     var presentedList = false
     var scrollView: UIScrollView!
+    var previouslyTouchedButton = -1
     
     @objc func addSolarSystemTosceneView(withGestureRecognizer recognizer: UIGestureRecognizer) {
         
-        let tapLocation = recognizer.location(in: sceneView)
-        let hitTestResults = sceneView.hitTest(tapLocation, types: .existingPlaneUsingExtent)
-        
-        guard let hitTestResult = hitTestResults.first else { return }
-        let translation = hitTestResult.worldTransform
-        let x = translation.columns.3.x
-        let y = translation.columns.3.y
-        let z = translation.columns.3.z
-        
-        solarSystem = PlanetaryView(frame: CGRect(x: 0.0, y: 0.0, width: self.view.bounds.width, height: self.view.bounds.height))
-        
-        solarSystem.getRootNode().position = SCNVector3(x,y,z)
-        
-        self.sceneView.scene.rootNode.addChildNode(solarSystem.getRootNode())
-        
-        alreadyAdded = true
+        if !alreadyAdded {
+            // Only adds the UIScrollView once a surface has been tapped
+            addPlanetScrollList()
+            
+            let tapLocation = recognizer.location(in: sceneView)
+            let hitTestResults = sceneView.hitTest(tapLocation, types: .existingPlaneUsingExtent)
+            
+            guard let hitTestResult = hitTestResults.first else { return }
+            let translation = hitTestResult.worldTransform
+            let x = translation.columns.3.x
+            let y = translation.columns.3.y
+            let z = translation.columns.3.z
+            
+            solarSystem = PlanetaryView(frame: CGRect(x: 0.0, y: 0.0, width: self.view.bounds.width, height: self.view.bounds.height))
+            
+            solarSystem.getRootNode().position = SCNVector3(x,y,z)
+            
+            self.sceneView.scene.rootNode.addChildNode(solarSystem.getRootNode())
+            
+            alreadyAdded = true
+        }
     }
     
     @IBAction func buttonClicked(sender: UIButton) {
         
-        if sender.tag == 11 {
-            print("button")
-            
-            if let viewWithTag = self.view.viewWithTag(100) {
+        if let viewWithTag = self.view.viewWithTag(100) {
                 viewWithTag.removeFromSuperview()
                 print("Removed")
                 userReadInstructions = true
-            }
+            
         }
-        
     }
     
     @IBAction func touchedPlanet(sender: UIButton) {
         
-        var touched = ""
+        var touched = planetList[sender.tag]
         
-        for i in 0...planetList.count {
+        for i in self.view.subviews {
             
-            if i == sender.tag {
-                print("Touched \(i) \(planetList[i])")
+            print(i.tag)
+            
+            for j in i.subviews {
+                print(j.tag)
                 
-                touched = planetList[i]
-            }
-            
-        }
-        
-        
-        
-        dump(sceneView.scene.rootNode.childNodes)
-        
-        for i in sceneView.scene.rootNode.childNodes {
-            
-//            dump("> \(i.childNodes)")
-            
-            for j in i.childNodes {
-//                print(j.childNodes)
-                
-                // Got all child nodes
-                for k in j.childNodes {
-                    print(k.name)
+                for k in j.subviews {
+                    print(k.tag)
                     
-                    print(planetList)
-                    
-                    if k.name != nil {
-                        print(k.name!)
+                    if previouslyTouchedButton == sender.tag {
                         
-                        if touched != k.name! {
-                            print("EHEHE")
-                            k.opacity = 0.5
-                        } else {
-                            k.opacity = 1.0
+                        for a in sceneView.scene.rootNode.childNodes {
+                            
+                            for b in a.childNodes {
+                                
+                                // Got all child nodes
+                                for c in b.childNodes {
+                                    
+                                    c.opacity = 1.0
+                                }
+                            }
                         }
+                    } else  {
                         
+                        for i in sceneView.scene.rootNode.childNodes {
+                            
+                            for j in i.childNodes {
+                                
+                                // Got all child nodes
+                                for k in j.childNodes {
+                                    
+                                    if k.name != nil {
+                                        print(k.name!)
+                                        
+                                        if touched != k.name! {
+                                            
+                                            k.opacity = 0.5
+                                        } else {
+                                            k.opacity = 1.0
+                                        }
+                                        
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
+        
+        print("Touched \(sender.tag) \(planetList[sender.tag])")
+        
+        previouslyTouchedButton = sender.tag
     }
     
     
@@ -159,11 +175,7 @@ class ViewController : UIViewController, ARSCNViewDelegate, ARSessionDelegate, U
         }
         
         addTapGestureToSceneView()
-        
-        
-        
     }
-    
 
     // Adds a UITapGestureRecognizer to add the Solar System projection when the user taps on a detected surface
     func addTapGestureToSceneView() {
@@ -176,53 +188,68 @@ class ViewController : UIViewController, ARSCNViewDelegate, ARSessionDelegate, U
         
         sceneView.frame = CGRect(x: 0.0, y: 0.0, width: self.view.frame.width, height: self.view.frame.height)
         
-        presentStuff()
-        presentList()
-        
+        presentInstructionsToUser()
     }
     
-    func presentList() {
+    // Adds a UIScrollView to the bottom of the screen 
+    func addPlanetScrollList() {
         
         if !presentedList && userReadInstructions {
             
-            let scrollViewHeight: CGFloat = 100.0
+            let scrollViewHeight: CGFloat = 140.0
             let offset: CGFloat = 10.0
             
             scrollView = UIScrollView(frame: CGRect(x: 0.0, y: self.view.frame.height - scrollViewHeight, width: self.view.frame.width, height: scrollViewHeight))
             scrollView.contentSize = CGSize(width: offset + ( (scrollViewHeight - 20.0 + offset) * CGFloat(planetList.count + 1)), height: 80.0)
             
-            scrollView.backgroundColor = UIColor(red: 0/255, green: 209/255, blue: 209/255, alpha: 0.2)
-            
+            scrollView.backgroundColor = UIColor(red: 255/255, green: 255/255, blue: 255/255, alpha: 0.2)
             scrollView.isScrollEnabled = true
+            scrollView.showsHorizontalScrollIndicator = false
             
-            let containerView = UIView(frame: CGRect(x: 0.0, y: 0.0, width: self.view.frame.width / 2, height: scrollViewHeight))
-            
+            let containerView = UIView(frame: CGRect(x: 0.0, y: 0.0, width: offset + ( (scrollViewHeight - 20.0 + offset) * CGFloat(planetList.count + 1)), height: scrollViewHeight))
 
             scrollView.addSubview(containerView)
             self.view.addSubview(scrollView)
             
-            for i in 0...planetList.count {
-                let eButton = UIButton(frame: CGRect(x: offset + ( (scrollViewHeight - 20.0 + offset) * CGFloat(i)), y: 10.0, width: scrollViewHeight - 20.0, height: scrollViewHeight - 20.0))
+            // Adds a button for every planet there is
+            for i in 0..<planetList.count {
+                let eButton = UIButton(type: .custom)
+                eButton.frame = CGRect(x: offset + ( (scrollViewHeight - 20.0 + offset) * CGFloat(i)), y: 10.0, width: scrollViewHeight - 50.0, height: scrollViewHeight - 50.0)
+                
+                eButton.addTarget(self, action: #selector(touchedPlanet), for: .touchUpInside)
                 eButton.backgroundColor = UIColor.random()
+                eButton.clipsToBounds = true
                 eButton.layer.cornerRadius = eButton.frame.height / 2
                 eButton.tag = i
-                eButton.addTarget(self, action: #selector(touchedPlanet), for: .touchUpInside)
                 
-                print("Added target")
+                let planetLabel = UILabel(frame: CGRect(x: offset + ( (scrollViewHeight - 20.0 + offset) * CGFloat(i)), y: 40.0, width: scrollViewHeight - 50.0, height: scrollViewHeight + 20.0))
+                planetLabel.text = planetList[i].capitalized
+                planetLabel.textAlignment = .center
+                planetLabel.textColor = UIColor.white
+                
+                print("Added button for \(planetList[i]) \(i)")
+                
+                if let image = UIImage(named: "\(planetList[i]).jpg") {
+                    eButton.setImage(image, for: .normal)
+                }
                 
                 containerView.addSubview(eButton)
+                containerView.addSubview(planetLabel)
             }
             
             presentedList = true
          }
     }
     
-    // Shows initial screen with instructions
-    func presentStuff() {
+    // Shows initial screen with instructions of how the playground works
+    // View hierarchy
+    // view (UIView)
+    // -- presentationView (UIView)
+    // ---- title (UILabel)
+    // ---- subtitle (UILabel)
+    func presentInstructionsToUser() {
         
         if !userReadInstructions && !initialScreenAdded {
-            
-            print(self.view.frame)
             
             let presentationView = UIView(frame: CGRect(x: 0.0, y: 0.0, width: sceneView.frame.width, height: sceneView.frame.height))
             presentationView.tag = 100
@@ -234,33 +261,20 @@ class ViewController : UIViewController, ARSCNViewDelegate, ARSessionDelegate, U
             title.font = UIFont.systemFont(ofSize: 50, weight: .heavy)
             title.textAlignment = .left
             
-            print(self.view.frame)
-            print(sceneView.frame)
-            print(sceneView.bounds)
+            let subtitle = UILabel(frame: CGRect(x: 10.0, y: title.frame.maxY + 20.0, width: self.view.frame.size.width / 2 - 20.0 , height: 300.0))
             
-            let subtitle = UILabel(frame: CGRect(x: 10.0, y: (2 * self.view.frame.height) / 5, width: self.view.frame.width , height: 100.0))
-            
-            subtitle.text = "Once your device detects a flat surface tap it to discover the Solar System and learn how the planets move"
-            subtitle.numberOfLines = 10
+            subtitle.text = "1️⃣ Move your device around until it finds a flat surface\n\n2️⃣ Tap the surface and meet our neighbors\n\n🚀 Tap the screen to start exploring the Solar System"
+            subtitle.numberOfLines = 0
             subtitle.textColor = UIColor.white
             subtitle.font = UIFont.systemFont(ofSize: 20, weight: .regular)
             subtitle.textAlignment = .left
             
-            print(subtitle.frame)
-            
-//            let acceptButton = UIButton(frame: CGRect(x: self.view.frame.width / 2 - 40.0, y: sceneView.frame.height - 300.0, width: 80.0, height: 80.0))
-            let acceptButton = UIButton(frame: CGRect(x: 20.0, y: 20.0, width: 80.0, height: 80.0))
-            acceptButton.tag = 11
-            acceptButton.setTitle("👍🏼", for: .normal)
-            acceptButton.titleLabel?.font = UIFont.systemFont(ofSize: 40, weight: .regular)
-            acceptButton.backgroundColor = UIColor(red: 209/255, green: 209/255, blue: 209/255, alpha: 0.5)
-            acceptButton.layer.cornerRadius = acceptButton.frame.height/2
-            acceptButton.addTarget(self, action: #selector(buttonClicked), for: .touchUpInside)
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(buttonClicked))
+            presentationView.addGestureRecognizer(tapGesture)
             
             self.view.addSubview(presentationView)
             presentationView.addSubview(title)
             presentationView.addSubview(subtitle)
-            presentationView.addSubview(acceptButton)
             
             initialScreenAdded = true
         }
@@ -269,23 +283,25 @@ class ViewController : UIViewController, ARSCNViewDelegate, ARSessionDelegate, U
     // This protocol method gets called every time the scene view’s session has a new ARAnchor added
     func renderer(_ renderer: SCNSceneRenderer, didAdd node: SCNNode, for anchor: ARAnchor) {
         
-        guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
-        
-        let width = CGFloat(planeAnchor.extent.x)
-        let height = CGFloat(planeAnchor.extent.z)
-        let plane = SCNPlane(width: width, height: height)
-        
-        plane.materials.first?.diffuse.contents = UIColor(red: 10/255, green: 200/255, blue: 255/255, alpha: 0.2)
-        
-        let planeNode = SCNNode(geometry: plane)
-        
-        let x = CGFloat(planeAnchor.center.x)
-        let y = CGFloat(planeAnchor.center.y)
-        let z = CGFloat(planeAnchor.center.z)
-        planeNode.position = SCNVector3(x,y,z)
-        planeNode.eulerAngles.x = -.pi / 2
-        
-        node.addChildNode(planeNode)
+        if !alreadyAdded {
+            guard let planeAnchor = anchor as? ARPlaneAnchor else { return }
+            
+            let width = CGFloat(planeAnchor.extent.x)
+            let height = CGFloat(planeAnchor.extent.z)
+            let plane = SCNPlane(width: width, height: height)
+            
+            plane.materials.first?.diffuse.contents = UIColor(red: 10/255, green: 200/255, blue: 255/255, alpha: 0.5)
+            
+            let planeNode = SCNNode(geometry: plane)
+            
+            let x = CGFloat(planeAnchor.center.x)
+            let y = CGFloat(planeAnchor.center.y)
+            let z = CGFloat(planeAnchor.center.z)
+            planeNode.position = SCNVector3(x,y,z)
+            planeNode.eulerAngles.x = -.pi / 2
+            
+            node.addChildNode(planeNode)
+        }
     }
     
     // This method gets called every time a SceneKit node’s properties have been updated to match its corresponding anchor.
@@ -352,8 +368,8 @@ class EarthScene: SCNScene  {
         addPlanet(name: "mercury", speed: planetsRotations["mercury"]! * 20, planetRadius: 0.2)
         addPlanet(name: "venus", speed: planetsRotations["venus"]! * 20, planetRadius: 0.5)
         addPlanet(name: "earth", speed: planetsRotations["earth"]! * 20, planetRadius: 1)
-//        addPlanet(name: "mars", speed: planetsRotations["mars"]! * 20, planetRadius: 0.75)
-//        addPlanet(name: "jupiter", speed: planetsRotations["jupiter"]! * 20, planetRadius: 0.5)
+      addPlanet(name: "mars", speed: planetsRotations["mars"]! * 20, planetRadius: 0.75)
+      addPlanet(name: "jupiter", speed: planetsRotations["jupiter"]! * 20, planetRadius: 0.5)
 //        addPlanet(name: "saturn", speed: planetsRotations["saturn"]! * 20, planetRadius: 1.5)
 //        addPlanet(name: "uranus", speed: planetsRotations["uranus"]! * 20, planetRadius: 0.7)
 //        addPlanet(name: "neptune", speed: planetsRotations["neptune"]! * 20, planetRadius: 0.2)
@@ -364,6 +380,9 @@ class EarthScene: SCNScene  {
         fatalError("init(coder:) has not been implemented")
     }
     
+    // Hierarchy
+    // -- rootNode (SCNNode)
+    // ---- observerNode (SCNNode)
     func setUpObserver() {
         
         observerNode.camera = SCNCamera()
@@ -393,11 +412,15 @@ class EarthScene: SCNScene  {
         return rootNode
     }
     
+    // Hierarchy
+    // -- rootNode (SCNNode)
+    // ---- sunNode (SCNNode)
+    // ------ helperNode (SCNNode)
     func addStar(name: String) {
         
-        let helperNode            = SCNNode()
-    
+        let helperNode = SCNNode()
         let observerMaterial = SCNMaterial()
+        
         observerMaterial.diffuse.contents = UIImage(named: "\(name).jpg")
         
         let observerGeometry = SCNSphere(radius: sunRadius)
@@ -415,42 +438,40 @@ class EarthScene: SCNScene  {
         sunNode.rotation   = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(sunNodeRotation))
         
         rootNode.addChildNode(sunNode)
-        sunNode.addChildNode(helperNode)
+//        sunNode.addChildNode(helperNode)
         
         myAnimation(nextNode: sunNode, rotation: sunNodeRotation, speed: 1)
     }
     
+    // Hierarchy
+    // -- rootNode (SCNNode)
+    // ---- helperNode (SCNNode)
+    //          Allows traslation movement of the planet
+    // ------ planetNode (SCNNode)
+    //          Allows rotation movement of the planet
     func addPlanet(name: String, speed: CGFloat, planetRadius : CGFloat) {
         
-        let nextNode = SCNNode()
-        let helperAuxNode = SCNNode()
+        let planetNode = SCNNode()
+        let helperNode = SCNNode()
         
+        let planetMaterial              = SCNMaterial()
+        planetMaterial.diffuse.contents = UIImage(named: "\(name).jpg")
         
-        let earthMaterial              = SCNMaterial()
-//        earthMaterial.ambient.contents = UIColor(white: 0.7, alpha: 0)
-        earthMaterial.diffuse.contents = UIImage(named: "\(name).jpg")
+        let planetGeometry = SCNSphere(radius: CGFloat(planetRadius))
+        planetGeometry.firstMaterial = planetMaterial
         
-        earthMaterial.specular.intensity = 1
-        earthMaterial.shininess = 0.05
-        earthMaterial.multiply.contents = UIColor(white: 0.7, alpha: 1.0)
+        planetNode.geometry = planetGeometry
+        planetNode.position = SCNVector3(planetsRadius[name]!, 0.0, 0.0)
         
-        let earthGeometry = SCNSphere(radius: CGFloat(planetRadius))
-        earthGeometry.firstMaterial = earthMaterial
+        planetsRotations[name]!   = revolve(node: planetNode, value: planetsRotations[name]!, increase: 200)
+        planetNode.rotation  = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(planetsRotations[name]!))
+        planetNode.name = name
         
-        nextNode.geometry = earthGeometry
-        nextNode.position = SCNVector3(planetsRadius[name]!, 0.0, 0.0)
+        rootNode.addChildNode(helperNode)
+        helperNode.addChildNode(planetNode)
         
-        
-        
-        planetsRotations[name]!   = revolve(node: nextNode, value: planetsRotations[name]!, increase: 200)
-        nextNode.rotation  = SCNVector4(x: 0.0, y: 1.0, z: 0.0, w: Float(planetsRotations[name]!))
-        nextNode.name = name
-        
-        rootNode.addChildNode(helperAuxNode)
-        helperAuxNode.addChildNode(nextNode)
-        
-        myAnimation(nextNode: helperAuxNode, rotation: planetsRotations[name]!, speed: speed)
-        myAnimation(nextNode: nextNode, rotation: planetsRotations[name]!, speed: speed * 100)
+        myAnimation(nextNode: helperNode, rotation: planetsRotations[name]!, speed: speed)
+        myAnimation(nextNode: planetNode, rotation: planetsRotations[name]!, speed: speed * 100)
     }
     
     // Traslation movement of the planet arount the star
