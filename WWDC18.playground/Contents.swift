@@ -1,3 +1,4 @@
+
 // Apple's WWDC18 Scholarship Submission by Javier de Martín
 // Planet assets used under Attribution 4.0 (https://www.solarsystemscope.com/textures)
 
@@ -6,10 +7,21 @@ import UIKit
 import SceneKit
 import PlaygroundSupport
 
-let isInDebug = false //
+// Instructions
+//
+// 1️⃣ Hold your iPad and move it around until it
+// finds a flat surface.
+// 2️⃣ Tap on the blue area to place the Solar System
+// 3️⃣ Use the list to select a planet and know where it is. Tap it again to see all the planets again 
+// 🚀 Enjoy!
+
+
+let isInDebug = false // Shows auxiliary constraints to debug ARKit scene 
 var alreadyAdded = false
 var userReadInstructions = false // User has accepted the instructions
 var initialScreenAdded = false // Checks if the view with the instructions has been presented to the user
+
+
 
 // Uncomment planets to add them, my current iPad can't render all of them at the same time due to lack of memory.
 let planetList = ["mercury", "venus", "earth", "mars", "jupiter"] //, "saturn", "uranus", "neptune"]
@@ -274,7 +286,7 @@ class ViewController : UIViewController, ARSCNViewDelegate, ARSessionDelegate, U
             let height = CGFloat(planeAnchor.extent.z)
             let plane = SCNPlane(width: width, height: height)
             
-            plane.materials.first?.diffuse.contents = UIColor(red: 10/255, green: 200/255, blue: 255/255, alpha: 0.3)
+            plane.materials.first?.diffuse.contents = UIColor(red: 10/255, green: 200/255, blue: 255/255, alpha: 0.1)
             
             let planeNode = SCNNode(geometry: plane)
             
